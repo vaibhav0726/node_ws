@@ -2,6 +2,12 @@ const express = require('express');
 const port = 5001;
 const path = require('path'); // inbuilt in node 
 
+// requiring the database
+const db = require('./config/mongoose');
+
+// requiring the contact schema
+const Contact = require('./models/contact');
+
 // this will have all the functionalities of express to run the server
 const app = express();
 
@@ -49,11 +55,24 @@ app.get('/', function(req, res){
     // console.log(req);
     // res.send('<h1>cool, it is running!</h1>'); 
     
+    // connecting it to the db
+    Contact.find({}, function(err, contacts){
+        if(err){
+            console.log('error in fetching contact', err);
+            return;
+        }
+        return res.render('home', {
+            title: "Contacts List", // simple string
+            contact_list: contacts // array
+        });
+    })
+
+    // using when not connected to db
     // returning and passing variables to the ejs
-    return res.render('home', {
-        title: "Contacts List", // simple string
-        contact_list: contactList // array
-    });
+    // return res.render('home', {
+    //     title: "Contacts List", // simple string
+    //     contact_list: contactList // array
+    // });
 })
 
 app.get('/practice', function (req, res){
@@ -74,16 +93,29 @@ app.get('/delete-contact', function(req, res){
 
     // using query
     // get the query from the url
-    console.log(req.query);
-    let phone = req.query.phone;
+    // console.log(req.query);
+    // let phone = req.query.phone;
 
-    // getting the index of the found phone
-    let contactIndex = contactList.findIndex(contact => contact.phone == phone);
+    // // getting the index of the found phone
+    // let contactIndex = contactList.findIndex(contact => contact.phone == phone);
 
-    if(contactIndex != -1){
-        contactList.splice(contactIndex, 1);
-    }
-    return res.redirect('back');
+    // if(contactIndex != -1){
+    //     contactList.splice(contactIndex, 1);
+    // }
+    // return res.redirect('back');
+
+
+    // with db
+    // get the id from the query in the url 
+    let id = req.query.id;
+    // find the contact in the database using id and delete it
+    Contact.findByIdAndDelete(id, function(err){
+        if(err){
+            console.log('error in deleting the contact', err);
+            return;
+        }
+        return res.redirect('back');
+    });
 })
 
 
@@ -91,9 +123,23 @@ app.get('/delete-contact', function(req, res){
 // controller
 app.post('/create-contact', function(req, res){
     
+    // 1. for adding it to the array
     // console.log(req.body.name);
     // console.log(req.body.phone);
-    contactList.push(req.body);
+    // contactList.push(req.body);
+
+    // 2. for adding it to the db
+    Contact.create({
+        name: req.body.name,
+        phone: req.body.phone
+    }, function(err, newContact){
+        if(err){
+            console.log('error in creating contact', err);
+            return;
+        }
+        // console.log("************",newContact);
+        res.redirect('back');
+    });
 
     // also to push to the array
     // contactList.push({
@@ -103,7 +149,8 @@ app.post('/create-contact', function(req, res){
 
     // return res.redirect('/');
     // also
-    return res.redirect('back');
+    // return res.redirect('back');
+    // not using above thing while connecting to db
 })
 
 app.listen(port, function(err){
